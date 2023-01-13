@@ -18,12 +18,12 @@ import (
 
 	"github.com/bradfitz/gomemcache/memcache"
 	gsm "github.com/bradleypeabody/gorilla-sessions-memcache"
+	"github.com/catatsuy/private-isu/webapp/golang/helpisu"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
-	"github.com/catatsuy/private-isu/webapp/golang/helpisu"
 )
 
 var (
@@ -792,7 +792,7 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 	for _, id := range r.Form["uid[]"] {
 		db.Exec(query, 1, id)
 
-		intID,_:=strconv.Atoi(id)
+		intID, _ := strconv.Atoi(id)
 		user, ok := userCache.Get(intID)
 		if ok {
 			user.DelFlg = 1
@@ -842,6 +842,9 @@ func main() {
 		log.Fatalf("Failed to connect to DB: %s.", err.Error())
 	}
 	defer db.Close()
+
+	db.SetMaxOpenConns(256)
+	db.SetMaxIdleConns(64)
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
