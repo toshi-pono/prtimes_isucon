@@ -821,7 +821,10 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 
 		// 先頭に3つだけ追加
 		newComments := append([]Comment{comment}, comments...)
-		commentCache.Set(postID, newComments[:3])
+		if len(newComments) > 3 {
+			newComments = newComments[:3]
+		}
+		commentCache.Set(postID, newComments)
 	}
 
 	http.Redirect(w, r, fmt.Sprintf("/posts/%d", postID), http.StatusFound)
