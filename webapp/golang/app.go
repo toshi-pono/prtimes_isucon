@@ -31,6 +31,7 @@ var (
 	store             *gsm.MemcacheStore
 	userCache         = helpisu.NewCache[int, User]()
 	commentCountCache = helpisu.NewCache[int, int]()
+	commentCache      = helpisu.NewCache[int, []Comment]()
 )
 
 const (
@@ -92,6 +93,8 @@ func dbInitialize() {
 	for _, sql := range sqls {
 		db.Exec(sql)
 	}
+
+	helpisu.ResetAllCache()
 }
 
 func tryLogin(accountName, password string) *User {
@@ -184,9 +187,19 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 			query += " LIMIT 3"
 		}
 		var comments []Comment
-		err := db.Select(&comments, query, p.ID)
-		if err != nil {
-			return nil, err
+		comments, ok = commentCache.Get(p.ID)
+		if ok && !allComments {
+			// コメントを3つ取るときだけキャッシュを使う
+			if (len(comments) - 3) > 0 {
+				comments = comments[:3]
+			}
+		}
+		if !ok || allComments {
+			err := db.Select(&comments, query, p.ID)
+			if err != nil {
+				return nil, err
+			}
+			commentCache.Set(p.ID, comments)
 		}
 
 		for i := 0; i < len(comments); i++ {
@@ -211,7 +224,7 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 		var ok bool
 		p.User, ok = userCache.Get(p.UserID)
 		if !ok {
-			err = db.Get(&p.User, "SELECT * FROM `users` WHERE `id` = ?", p.UserID)
+			err := db.Get(&p.User, "SELECT * FROM `users` WHERE `id` = ?", p.UserID)
 			if err != nil {
 				return nil, err
 			}
@@ -785,7 +798,8 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := "INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)"
-	_, err = db.Exec(query, postID, me.ID, r.FormValue("comment"))
+
+	result, err := db.Exec(query, postID, me.ID, r.FormValue("comment"))
 	if err != nil {
 		log.Print(err)
 		return
@@ -793,6 +807,21 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 	num, ok := commentCountCache.Get(postID)
 	if ok {
 		commentCountCache.Set(postID, num+1)
+	}
+
+	comments, ok := commentCache.Get(postID)
+	if ok {
+		commentID, err := result.LastInsertId()
+		if err != nil {
+			log.Print(err)
+			return
+		}
+		var comment Comment
+		err = db.Get(&comment, "SELECT * FROM `comments` WHERE `id` = ?", commentID)
+
+		// 先頭に3つだけ追加
+		newComments := append([]Comment{comment}, comments...)
+		commentCache.Set(postID, newComments[:3])
 	}
 
 	http.Redirect(w, r, fmt.Sprintf("/posts/%d", postID), http.StatusFound)
