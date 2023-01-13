@@ -561,7 +561,7 @@ func getPostsID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	results := []Post{}
-	err = db.Select(&results, "SELECT * FROM `posts` WHERE `id` = ?", pid)
+	err = db.Select(&results, "SELECT SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `id` = ?", pid)
 	if err != nil {
 		log.Print(err)
 		return
@@ -619,15 +619,19 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mime := ""
+	ext := ""
 	if file != nil {
 		// 投稿のContent-Typeからファイルのタイプを決定する
 		contentType := header.Header["Content-Type"][0]
 		if strings.Contains(contentType, "jpeg") {
 			mime = "image/jpeg"
+			ext = ".jpg"
 		} else if strings.Contains(contentType, "png") {
 			mime = "image/png"
+			ext = ".png"
 		} else if strings.Contains(contentType, "gif") {
 			mime = "image/gif"
+			ext = ".gif"
 		} else {
 			session := getSession(r)
 			session.Values["notice"] = "投稿できる画像形式はjpgとpngとgifだけです"
@@ -653,12 +657,18 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := "INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)"
-	result, err := db.Exec(
+	tx, err := db.Begin()
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	defer tx.Rollback()
+
+	query := "INSERT INTO `posts` (`user_id`, `mime`, `body`) VALUES (?,?,?)"
+	result, err := tx.Exec(
 		query,
 		me.ID,
 		mime,
-		filedata,
 		r.FormValue("body"),
 	)
 	if err != nil {
@@ -671,6 +681,26 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 		return
 	}
+
+	f, err := os.Create("../images/" + strconv.FormatInt(pid, 10) + ext)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	defer func() {
+		err := f.Close()
+		if err != nil {
+			log.Print(err)
+		}
+	}()
+
+	_, err = f.Write(filedata)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	tx.Commit()
 
 	http.Redirect(w, r, "/posts/"+strconv.FormatInt(pid, 10), http.StatusFound)
 }
@@ -701,6 +731,25 @@ func getImage(w http.ResponseWriter, r *http.Request) {
 			log.Print(err)
 			return
 		}
+
+		f, err := os.Create("../images/" + strconv.FormatInt(int64(post.ID), 10) + ext)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+		defer func() {
+			err := f.Close()
+			if err != nil {
+				log.Print(err)
+			}
+
+			_, err = f.Write(post.Imgdata)
+			if err != nil {
+				log.Print(err)
+				return
+			}
+		}()
+
 		return
 	}
 
