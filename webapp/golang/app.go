@@ -23,7 +23,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
-	"github.com/logica0419/helpisu"
+	"github.com/catatsuy/private-isu/webapp/golang/helpisu"
 )
 
 var (
