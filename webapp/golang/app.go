@@ -686,11 +686,12 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	query := "INSERT INTO `posts` (`user_id`, `mime`, `body`) VALUES (?,?,?)"
+	query := "INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)"
 	result, err := tx.Exec(
 		query,
 		me.ID,
 		mime,
+		[]byte{},
 		r.FormValue("body"),
 	)
 	if err != nil {
