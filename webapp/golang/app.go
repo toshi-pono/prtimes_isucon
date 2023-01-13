@@ -19,6 +19,7 @@ import (
 	"github.com/bradfitz/gomemcache/memcache"
 	gsm "github.com/bradleypeabody/gorilla-sessions-memcache"
 	"github.com/catatsuy/private-isu/webapp/golang/helpisu"
+	"github.com/catatsuy/private-isu/webapp/golang/templates"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	_ "github.com/go-sql-driver/mysql"
@@ -67,6 +68,25 @@ type Comment struct {
 	Comment   string    `db:"comment"`
 	CreatedAt time.Time `db:"created_at"`
 	User      User
+}
+
+func convertUser(u User) templates.User {
+	return templates.User{
+		ID:          u.ID,
+		AccountName: u.AccountName,
+		Passhash:    u.Passhash,
+		Authority:   u.Authority,
+		DelFlg:      u.DelFlg,
+		CreatedAt:   u.CreatedAt,
+	}
+}
+
+func convertUsers(us []User) []templates.User {
+	var ret []templates.User
+	for _, u := range us {
+		ret = append(ret, convertUser(u))
+	}
+	return ret
 }
 
 func init() {
@@ -808,14 +828,18 @@ func getAdminBanned(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	template.Must(template.ParseFiles(
-		getTemplPath("layout.html"),
-		getTemplPath("banned.html")),
-	).Execute(w, struct {
-		Users     []User
-		Me        User
-		CSRFToken string
-	}{users, me, getCSRFToken(r)})
+	// template.Must(template.ParseFiles(
+	// 	getTemplPath("layout.html"),
+	// 	getTemplPath("banned.html")),
+	// ).Execute(w, struct {
+	// 	Users     []User
+	// 	Me        User
+	// 	CSRFToken string
+	// }{users, me, getCSRFToken(r)})
+
+	templates.WriteRender(w, convertUser(me),
+		templates.Banned(convertUsers(users), getCSRFToken(r)),
+	)
 }
 
 func postAdminBanned(w http.ResponseWriter, r *http.Request) {
