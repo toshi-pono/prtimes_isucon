@@ -629,13 +629,13 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		contentType := header.Header["Content-Type"][0]
 		if strings.Contains(contentType, "jpeg") {
 			mime = "image/jpeg"
-			ext = ".jpg"
+			ext = "jpg"
 		} else if strings.Contains(contentType, "png") {
 			mime = "image/png"
-			ext = ".png"
+			ext = "png"
 		} else if strings.Contains(contentType, "gif") {
 			mime = "image/gif"
-			ext = ".gif"
+			ext = "gif"
 		} else {
 			session := getSession(r)
 			session.Values["notice"] = "投稿できる画像形式はjpgとpngとgifだけです"
@@ -686,7 +686,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	f, err := os.Create("../images/" + strconv.FormatInt(pid, 10) + ext)
+	f, err := os.Create("../images/" + strconv.FormatInt(pid, 10) + "." + ext)
 	if err != nil {
 		log.Print(err)
 		return
@@ -736,7 +736,7 @@ func getImage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		f, err := os.Create("../images/" + strconv.FormatInt(int64(post.ID), 10) + ext)
+		f, err := os.Create("../images/" + strconv.FormatInt(int64(post.ID), 10) + "." + ext)
 		if err != nil {
 			log.Print(err)
 			return
