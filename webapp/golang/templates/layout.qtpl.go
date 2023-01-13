@@ -4,20 +4,23 @@
 //line layout.qtpl:1
 package templates
 
-//line layout.qtpl:1
+//line layout.qtpl:2
+import "time"
+
+//line layout.qtpl:5
 import (
 	qtio422016 "io"
 
 	qt422016 "github.com/valyala/quicktemplate"
 )
 
-//line layout.qtpl:1
+//line layout.qtpl:5
 var (
 	_ = qtio422016.Copy
 	_ = qt422016.AcquireByteBuffer
 )
 
-//line layout.qtpl:2
+//line layout.qtpl:6
 type User struct {
 	ID          int       `db:"id"`
 	AccountName string    `db:"account_name"`
@@ -27,9 +30,9 @@ type User struct {
 	CreatedAt   time.Time `db:"created_at"`
 }
 
-//line layout.qtpl:12
+//line layout.qtpl:16
 func StreamRender(qw422016 *qt422016.Writer, Me User, content string) {
-//line layout.qtpl:12
+//line layout.qtpl:16
 	qw422016.N().S(`
 <!DOCTYPE html>
 <html>
@@ -46,49 +49,49 @@ func StreamRender(qw422016 *qt422016.Writer, Me User, content string) {
         </div>
         <div class="isu-header-menu">
           `)
-//line layout.qtpl:27
+//line layout.qtpl:31
 	if Me.ID == 0 {
-//line layout.qtpl:27
+//line layout.qtpl:31
 		qw422016.N().S(`
           <div><a href="/login">ログイン</a></div>
           `)
-//line layout.qtpl:29
+//line layout.qtpl:33
 	} else {
-//line layout.qtpl:29
+//line layout.qtpl:33
 		qw422016.N().S(`
           <div><a href="/@`)
-//line layout.qtpl:30
+//line layout.qtpl:34
 		qw422016.E().S(Me.AccountName)
-//line layout.qtpl:30
+//line layout.qtpl:34
 		qw422016.N().S(`"><span class="isu-account-name">`)
-//line layout.qtpl:30
+//line layout.qtpl:34
 		qw422016.E().S(Me.AccountName)
-//line layout.qtpl:30
+//line layout.qtpl:34
 		qw422016.N().S(`</span>さん</a></div>
           `)
-//line layout.qtpl:31
+//line layout.qtpl:35
 		if Me.Authority == 1 {
-//line layout.qtpl:31
+//line layout.qtpl:35
 			qw422016.N().S(`
           <div><a href="/admin/banned">管理者用ページ</a></div>
           `)
-//line layout.qtpl:33
+//line layout.qtpl:37
 		}
-//line layout.qtpl:33
+//line layout.qtpl:37
 		qw422016.N().S(`
           <div><a href="/logout">ログアウト</a></div>
           `)
-//line layout.qtpl:35
+//line layout.qtpl:39
 	}
-//line layout.qtpl:35
+//line layout.qtpl:39
 	qw422016.N().S(`
         </div>
       </div>
 
       `)
-//line layout.qtpl:39
+//line layout.qtpl:43
 	qw422016.E().S(content)
-//line layout.qtpl:39
+//line layout.qtpl:43
 	qw422016.N().S(`
     </div>
     <script src="/js/timeago.min.js"></script>
@@ -96,31 +99,31 @@ func StreamRender(qw422016 *qt422016.Writer, Me User, content string) {
   </body>
 </html>
 `)
-//line layout.qtpl:45
+//line layout.qtpl:49
 }
 
-//line layout.qtpl:45
+//line layout.qtpl:49
 func WriteRender(qq422016 qtio422016.Writer, Me User, content string) {
-//line layout.qtpl:45
+//line layout.qtpl:49
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line layout.qtpl:45
+//line layout.qtpl:49
 	StreamRender(qw422016, Me, content)
-//line layout.qtpl:45
+//line layout.qtpl:49
 	qt422016.ReleaseWriter(qw422016)
-//line layout.qtpl:45
+//line layout.qtpl:49
 }
 
-//line layout.qtpl:45
+//line layout.qtpl:49
 func Render(Me User, content string) string {
-//line layout.qtpl:45
+//line layout.qtpl:49
 	qb422016 := qt422016.AcquireByteBuffer()
-//line layout.qtpl:45
+//line layout.qtpl:49
 	WriteRender(qb422016, Me, content)
-//line layout.qtpl:45
+//line layout.qtpl:49
 	qs422016 := string(qb422016.B)
-//line layout.qtpl:45
+//line layout.qtpl:49
 	qt422016.ReleaseByteBuffer(qb422016)
-//line layout.qtpl:45
+//line layout.qtpl:49
 	return qs422016
-//line layout.qtpl:45
+//line layout.qtpl:49
 }
