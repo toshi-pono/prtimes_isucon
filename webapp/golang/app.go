@@ -20,7 +20,6 @@ import (
 	gsm "github.com/bradleypeabody/gorilla-sessions-memcache"
 	"github.com/catatsuy/private-isu/webapp/golang/helpisu"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
@@ -899,7 +898,7 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	go http.ListenAndServe(":6060", nil)
+	// go http.ListenAndServe(":6060", nil)
 
 	host := os.Getenv("ISUCONP_DB_HOST")
 	if host == "" {
@@ -942,7 +941,7 @@ func main() {
 	db.SetMaxIdleConns(64)
 
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	// r.Use(middleware.Logger)
 
 	r.Get("/initialize", getInitialize)
 	r.Get("/login", getLogin)
