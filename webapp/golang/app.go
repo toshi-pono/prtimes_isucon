@@ -687,7 +687,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	f, err := os.Create("../images/" + strconv.FormatInt(pid, 10) + "." + ext)
+	f, err := os.Create("../image/" + strconv.FormatInt(pid, 10) + "." + ext)
 	if err != nil {
 		log.Print(err)
 		return
@@ -737,7 +737,7 @@ func getImage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		f, err := os.Create("../images/" + strconv.FormatInt(int64(post.ID), 10) + "." + ext)
+		f, err := os.Create("../image/" + strconv.FormatInt(int64(post.ID), 10) + "." + ext)
 		if err != nil {
 			log.Print(err)
 			return
