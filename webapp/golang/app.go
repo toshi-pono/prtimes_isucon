@@ -138,14 +138,14 @@ func getSessionUser(r *http.Request) User {
 		return User{}
 	}
 
-	u, ok := userCache.Get(uid.(int))
+	u, ok := userCache.Get(int(uid.(int64)))
 	if !ok {
 		err := db.Get(&u, "SELECT * FROM `users` WHERE `id` = ?", uid)
 		if err != nil {
 			return User{}
 		}
 
-		userCache.Set(uid.(int), u)
+		userCache.Set(int(uid.(int64)), u)
 	}
 
 	return u
