@@ -27,9 +27,10 @@ import (
 )
 
 var (
-	db        *sqlx.DB
-	store     *gsm.MemcacheStore
-	userCache = helpisu.NewCache[int, User]()
+	db                *sqlx.DB
+	store             *gsm.MemcacheStore
+	userCache         = helpisu.NewCache[int, User]()
+	commentCountCache = helpisu.NewCache[int, int]()
 )
 
 const (
@@ -166,11 +167,16 @@ func getFlash(w http.ResponseWriter, r *http.Request, key string) string {
 
 func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, error) {
 	var posts []Post
+	var ok bool
 
 	for _, p := range results {
-		err := db.Get(&p.CommentCount, "SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?", p.ID)
-		if err != nil {
-			return nil, err
+		p.CommentCount, ok = commentCountCache.Get(p.ID)
+		if !ok {
+			err := db.Get(&p.CommentCount, "SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?", p.ID)
+			if err != nil {
+				return nil, err
+			}
+			commentCountCache.Set(p.ID, p.CommentCount)
 		}
 
 		query := "SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC"
@@ -178,13 +184,12 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 			query += " LIMIT 3"
 		}
 		var comments []Comment
-		err = db.Select(&comments, query, p.ID)
+		err := db.Select(&comments, query, p.ID)
 		if err != nil {
 			return nil, err
 		}
 
 		for i := 0; i < len(comments); i++ {
-			var ok bool
 			comments[i].User, ok = userCache.Get(comments[i].UserID)
 			if !ok {
 				err := db.Get(&comments[i].User, "SELECT * FROM `users` WHERE `id` = ?", comments[i].UserID)
@@ -784,6 +789,10 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Print(err)
 		return
+	}
+	num, ok := commentCountCache.Get(postID)
+	if ok {
+		commentCountCache.Set(postID, num+1)
 	}
 
 	http.Redirect(w, r, fmt.Sprintf("/posts/%d", postID), http.StatusFound)
