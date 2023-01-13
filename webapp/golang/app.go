@@ -527,7 +527,7 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 	results := []Post{}
 	err = db.Select(&results,
 		"SELECT posts.id, `user_id`, `body`, `mime`, posts.created_at FROM `posts` JOIN `users` ON posts.user_id = users.id"+
-			" WHERE users.del_flg = 0 AND `created_at` <= ? ORDER BY `created_at` DESC LIMIT ?",
+			" WHERE users.del_flg = 0 AND posts.created_at <= ? ORDER BY posts.created_at DESC LIMIT ?",
 		t.Format(ISO8601Format),
 		postsPerPage)
 	if err != nil {
