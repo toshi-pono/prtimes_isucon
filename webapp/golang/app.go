@@ -746,13 +746,13 @@ func getImage(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				log.Print(err)
 			}
-
-			_, err = f.Write(post.Imgdata)
-			if err != nil {
-				log.Print(err)
-				return
-			}
 		}()
+
+		_, err = f.Write(post.Imgdata)
+		if err != nil {
+			log.Print(err)
+			return
+		}
 
 		return
 	}
