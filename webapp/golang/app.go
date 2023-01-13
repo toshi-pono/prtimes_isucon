@@ -23,11 +23,13 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
+	"github.com/logica0419/helpisu"
 )
 
 var (
-	db    *sqlx.DB
-	store *gsm.MemcacheStore
+	db        *sqlx.DB
+	store     *gsm.MemcacheStore
+	userCache = helpisu.NewCache[int, User]()
 )
 
 const (
@@ -136,11 +138,14 @@ func getSessionUser(r *http.Request) User {
 		return User{}
 	}
 
-	u := User{}
+	u, ok := userCache.Get(uid.(int))
+	if !ok {
+		err := db.Get(&u, "SELECT * FROM `users` WHERE `id` = ?", uid)
+		if err != nil {
+			return User{}
+		}
 
-	err := db.Get(&u, "SELECT * FROM `users` WHERE `id` = ?", uid)
-	if err != nil {
-		return User{}
+		userCache.Set(uid.(int), u)
 	}
 
 	return u
@@ -179,9 +184,15 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 		}
 
 		for i := 0; i < len(comments); i++ {
-			err := db.Get(&comments[i].User, "SELECT * FROM `users` WHERE `id` = ?", comments[i].UserID)
-			if err != nil {
-				return nil, err
+			var ok bool
+			comments[i].User, ok = userCache.Get(comments[i].UserID)
+			if !ok {
+				err := db.Get(&comments[i].User, "SELECT * FROM `users` WHERE `id` = ?", comments[i].UserID)
+				if err != nil {
+					return nil, err
+				}
+
+				userCache.Set(comments[i].UserID, comments[i].User)
 			}
 		}
 
@@ -192,9 +203,15 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 
 		p.Comments = comments
 
-		err = db.Get(&p.User, "SELECT * FROM `users` WHERE `id` = ?", p.UserID)
-		if err != nil {
-			return nil, err
+		var ok bool
+		p.User, ok = userCache.Get(p.UserID)
+		if !ok {
+			err = db.Get(&p.User, "SELECT * FROM `users` WHERE `id` = ?", p.UserID)
+			if err != nil {
+				return nil, err
+			}
+
+			userCache.Set(p.UserID, p.User)
 		}
 
 		p.CSRFToken = csrfToken
@@ -774,6 +791,13 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 
 	for _, id := range r.Form["uid[]"] {
 		db.Exec(query, 1, id)
+
+		intID,_:=strconv.Atoi(id)
+		user, ok := userCache.Get(intID)
+		if ok {
+			user.DelFlg = 1
+			userCache.Set(intID, user)
+		}
 	}
 
 	http.Redirect(w, r, "/admin/banned", http.StatusFound)
