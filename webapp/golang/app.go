@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"net/url"
 	"os"
 	"path"
@@ -900,7 +901,7 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	// go http.ListenAndServe(":6060", nil)
+	go http.ListenAndServe(":6060", nil)
 
 	host := os.Getenv("ISUCONP_DB_HOST")
 	if host == "" {
