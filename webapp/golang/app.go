@@ -1,7 +1,7 @@
 package main
 
 import (
-	crand "crypto/rand"
+	cRand "crypto/rand"
 	"crypto/sha512"
 	"fmt"
 	"html/template"
@@ -94,7 +94,7 @@ func dbInitialize() {
 	}
 
 	for _, sql := range sqls {
-		db.Exec(sql)
+		_, _ = db.Exec(sql)
 	}
 
 	helpisu.ResetAllCache()
@@ -166,7 +166,7 @@ func getFlash(w http.ResponseWriter, r *http.Request, key string) string {
 		return ""
 	} else {
 		delete(session.Values, key)
-		session.Save(r, w)
+		_ = session.Save(r, w)
 		return value.(string)
 	}
 }
@@ -276,7 +276,7 @@ func getCSRFToken(r *http.Request) string {
 
 func secureRandomStr(b int) string {
 	k := make([]byte, b)
-	if _, err := crand.Read(k); err != nil {
+	if _, err := cRand.Read(k); err != nil {
 		panic(err)
 	}
 	return fmt.Sprintf("%x", k)
@@ -304,7 +304,7 @@ func getLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginTemp.Execute(w, struct {
+	_ = loginTemp.Execute(w, struct {
 		Me    User
 		Flash string
 	}{me, getFlash(w, r, "notice")})
@@ -322,13 +322,13 @@ func postLogin(w http.ResponseWriter, r *http.Request) {
 		session := getSession(r)
 		session.Values["user_id"] = u.ID
 		session.Values["csrf_token"] = secureRandomStr(16)
-		session.Save(r, w)
+		_ = session.Save(r, w)
 
 		http.Redirect(w, r, "/", http.StatusFound)
 	} else {
 		session := getSession(r)
 		session.Values["notice"] = "アカウント名かパスワードが間違っています"
-		session.Save(r, w)
+		_ = session.Save(r, w)
 
 		http.Redirect(w, r, "/login", http.StatusFound)
 	}
@@ -345,7 +345,7 @@ func getRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	registerTemp.Execute(w, struct {
+	_ = registerTemp.Execute(w, struct {
 		Me    User
 		Flash string
 	}{User{}, getFlash(w, r, "notice")})
@@ -363,7 +363,7 @@ func postRegister(w http.ResponseWriter, r *http.Request) {
 	if !validated {
 		session := getSession(r)
 		session.Values["notice"] = "アカウント名は3文字以上、パスワードは6文字以上である必要があります"
-		session.Save(r, w)
+		_ = session.Save(r, w)
 
 		http.Redirect(w, r, "/register", http.StatusFound)
 		return
@@ -371,12 +371,12 @@ func postRegister(w http.ResponseWriter, r *http.Request) {
 
 	exists := 0
 	// ユーザーが存在しない場合はエラーになるのでエラーチェックはしない
-	db.Get(&exists, "SELECT 1 FROM users WHERE `account_name` = ?", accountName)
+	_ = db.Get(&exists, "SELECT 1 FROM users WHERE `account_name` = ?", accountName)
 
 	if exists == 1 {
 		session := getSession(r)
 		session.Values["notice"] = "アカウント名がすでに使われています"
-		session.Save(r, w)
+		_ = session.Save(r, w)
 
 		http.Redirect(w, r, "/register", http.StatusFound)
 		return
@@ -397,7 +397,7 @@ func postRegister(w http.ResponseWriter, r *http.Request) {
 	}
 	session.Values["user_id"] = int(uid)
 	session.Values["csrf_token"] = secureRandomStr(16)
-	session.Save(r, w)
+	_ = session.Save(r, w)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }
@@ -406,7 +406,7 @@ func getLogout(w http.ResponseWriter, r *http.Request) {
 	session := getSession(r)
 	delete(session.Values, "user_id")
 	session.Options = &sessions.Options{MaxAge: -1}
-	session.Save(r, w)
+	_ = session.Save(r, w)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }
@@ -435,7 +435,7 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	indexTemp.Execute(w, struct {
+	_ = indexTemp.Execute(w, struct {
 		Posts     []Post
 		Me        User
 		CSRFToken string
@@ -517,7 +517,7 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 
 	me := getSessionUser(r)
 
-	accountNameTemp.Execute(w, struct {
+	_ = accountNameTemp.Execute(w, struct {
 		Posts          []Post
 		User           User
 		PostCount      int
@@ -572,7 +572,7 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	postsTemp.Execute(w, posts)
+	_ = postsTemp.Execute(w, posts)
 }
 
 var postsIDTemp = template.Must(template.New("layout.html").Funcs(fmap).ParseFiles(
@@ -611,7 +611,7 @@ func getPostsID(w http.ResponseWriter, r *http.Request) {
 
 	me := getSessionUser(r)
 
-	postsIDTemp.Execute(w, struct {
+	_ = postsIDTemp.Execute(w, struct {
 		Post Post
 		Me   User
 	}{p, me})
@@ -633,7 +633,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		session := getSession(r)
 		session.Values["notice"] = "画像が必須です"
-		session.Save(r, w)
+		_ = session.Save(r, w)
 
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
@@ -656,7 +656,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		} else {
 			session := getSession(r)
 			session.Values["notice"] = "投稿できる画像形式はjpgとpngとgifだけです"
-			session.Save(r, w)
+			_ = session.Save(r, w)
 
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
@@ -672,7 +672,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 	if len(filedata) > UploadLimit {
 		session := getSession(r)
 		session.Values["notice"] = "ファイルサイズが大きすぎます"
-		session.Save(r, w)
+		_ = session.Save(r, w)
 
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
@@ -683,7 +683,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 		return
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	query := "INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)"
 	result, err := tx.Exec(
@@ -722,7 +722,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tx.Commit()
+	_ = tx.Commit()
 
 	http.Redirect(w, r, "/posts/"+strconv.FormatInt(pid, 10), http.StatusFound)
 }
@@ -816,7 +816,7 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var comment Comment
-		err = db.Get(&comment, "SELECT * FROM `comments` WHERE `id` = ?", commentID)
+		_ = db.Get(&comment, "SELECT * FROM `comments` WHERE `id` = ?", commentID)
 
 		// 先頭に3つだけ追加
 		newComments := append([]Comment{comment}, comments...)
@@ -853,7 +853,7 @@ func getAdminBanned(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bannedTemp.Execute(w, struct {
+	_ = bannedTemp.Execute(w, struct {
 		Users     []User
 		Me        User
 		CSRFToken string
@@ -886,7 +886,7 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, id := range r.Form["uid[]"] {
-		db.Exec(query, 1, id)
+		_, _ = db.Exec(query, 1, id)
 
 		intID, _ := strconv.Atoi(id)
 		user, ok := userCache.Get(intID)
